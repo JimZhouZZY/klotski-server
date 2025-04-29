@@ -94,27 +94,27 @@ public class GameSaveHandler implements HttpHandler {
             System.out.println("Autosave uploaded for user: " + save.getUsername());
         } else {
             saveFileName = userDir + "/" + save.getDate() + ".json";
+
+            // Log the save
+            List<GameSave> saves = userSaves.computeIfAbsent(save.getUsername(), k -> new ArrayList<>());
+            saves.add(save);
+
+            // Limit to 10 saves for non-autosave
+            if (saves.size() > 3) {
+                saves.sort(Comparator.comparing(GameSave::getDate));
+                GameSave oldestSave = saves.remove(0);
+
+                // Delete the corresponding file from disk
+                String oldestSaveFileName = userDir + "/" + oldestSave.getDate() + ".json";
+                File oldestSaveFile = new File(oldestSaveFileName);
+                if (oldestSaveFile.exists()) {
+                    oldestSaveFile.delete();
+                }
+            }
         }
 
         try (FileWriter writer = new FileWriter(saveFileName)) {
             gson.toJson(save, writer);
-        }
-
-        // Log the save
-        List<GameSave> saves = userSaves.computeIfAbsent(save.getUsername(), k -> new ArrayList<>());
-        saves.add(save);
-
-        // Limit to 10 saves for non-autosave
-        if (saves.size() > 3) {
-            saves.sort(Comparator.comparing(GameSave::getDate));
-            GameSave oldestSave = saves.remove(0);
-
-            // Delete the corresponding file from disk
-            String oldestSaveFileName = userDir + "/" + oldestSave.getDate() + ".json";
-            File oldestSaveFile = new File(oldestSaveFileName);
-            if (oldestSaveFile.exists()) {
-                oldestSaveFile.delete();
-            }
         }
 
         // Respond to the client

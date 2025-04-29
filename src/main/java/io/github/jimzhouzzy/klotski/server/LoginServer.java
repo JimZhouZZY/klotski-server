@@ -19,10 +19,15 @@ public class LoginServer {
     private static final String USER_DATABASE_FILE = "userDatabase.json";
     private static final Map<String, String> userDatabase = new ConcurrentHashMap<>();
     private static final Gson gson = new Gson();
+    private static GameWebSocketServer gameWebSocketServer;
 
     public static void main(String[] args) throws IOException {
         // Load user database from JSON file
         loadUserDatabase();
+
+        // Create WebSocket server
+        gameWebSocketServer = new GameWebSocketServer(8002);
+        gameWebSocketServer.start();
 
         // Create HTTP server
         HttpServer server = HttpServer.create(new InetSocketAddress(8001), 0);
@@ -32,6 +37,31 @@ public class LoginServer {
         server.setExecutor(null); // Use default executor
         server.start();
         System.out.println("Server started on port 8001");
+
+        // Create WebServer for serving static files
+        WebServer webServer = new WebServer(8013);
+        
+        // Add shutdown hook to clean up resources
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("Shutting down servers...");
+
+            // Stop the WebSocket server
+            if (gameWebSocketServer != null) {
+                gameWebSocketServer.close();
+            }
+
+            // Stop the HTTP server
+            if (server != null) {
+                server.stop(0);
+            }
+
+            // Stop the WebServer
+            if (webServer != null) {
+                webServer.close();
+            }
+
+            System.out.println("All servers shut down successfully.");
+        }));
     }
 
     private static void loadUserDatabase() {

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klotski Game State</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            /* Stack items vertically */
+            align-items: center;
+            /* Center items horizontally */
+            gap: 20px;
+            /* Add space between rows */
+        }
+
+        canvas {
+            border: 1px solid #ddd;
+        }
+
+        #status {
+            font-size: 18px;
+            color: #333;
+            border: 2px solid #4CAF50;
+            /* Green border */
+            padding: 10px;
+            display: inline-block;
+            border-radius: 5px;
+            /* Rounded corners */
+            background-color: #f9f9f9;
+            /* Light background */
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Klotski Game State</h1>
+    <div class="container">
+        <canvas id="gameCanvas" width="320" height="400"></canvas>
+        <div id="status">Connecting to WebSocket server...</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusDiv = document.getElementById('status');
+        const cellSize = 80; // Size of each cell in pixels
+        const colors = {
+            'G': '#4CAF50', // Green
+            'C': '#2196F3', // Blue
+            '.': '#FFFFFF', // White (empty)
+            'Y': '#FFC107', // Yellow
+            'S': '#9E9E9E'  // Gray
+        };
+
+        let socket;
+
+        function updateStatus(message) {
+            statusDiv.textContent = message;
+        }
+
+        function drawBoard(state) {
+            const rows = state.trim().split('\n'); // Split the state into rows
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+
+            rows.forEach((row, rowIndex) => {
+                const cells = row.trim().split(' ').slice(0, 4); // Split each row into cells
+                cells.forEach((cell, colIndex) => {
+                    const color = colors[cell] || '#000000'; // Default to black if unknown
+                    ctx.fillStyle = color;
+                    ctx.fillRect(colIndex * cellSize, rowIndex * cellSize, cellSize, cellSize);
+
+                    // Draw cell borders
+                    ctx.strokeStyle = '#000000';
+                    ctx.strokeRect(colIndex * cellSize, rowIndex * cellSize, cellSize, cellSize);
+                });
+            });
+        }
+
+        function connectWebSocket() {
+            updateStatus('Connecting to WebSocket server...');
+            socket = new WebSocket('ws://42.194.132.147:8002');
+
+            socket.onmessage = (event) => {
+                const message = event.data;
+                const username = window.location.pathname.substring(1); // Extract username from URL (e.g., /jim)
+                console.log(`message recieved: ${message}`);
+
+                if (!username) {
+                    const state = message
+                        .replace('Board state updated:', '') // Remove the "Board state updated:" prefix
+                        .replace(/^\s*\w+:\s*/, '') // Remove any username in the format "abcdexyz:"
+                        .trim(); // Trim any extra whitespace
+                    drawBoard(state);
+                    updateStatus(`Updating board...`);
+                }
+
+                // Check if the message is a board update for the specific user
+                if (message.startsWith('Board state updated:') && message.includes(`${username}:`)) {
+                    const state = message.replace('Board state updated:', '').replace(`${username}:`, '').trim();
+                    drawBoard(state);
+                    updateStatus(`Updating board for ${username}...`);
+                }
+            };
+
+            socket.onopen = () => {
+                console.log('Connected to WebSocket server');
+                updateStatus('Connected to WebSocket server. Waiting for board updates...');
+            };
+
+            socket.onclose = () => {
+                console.log('Disconnected from WebSocket server. Retrying in 1 second...');
+                updateStatus('Disconnected from WebSocket server. Retrying...');
+                setTimeout(connectWebSocket, 1000); // Retry connection after 1 second
+            };
+
+            socket.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                updateStatus('WebSocket error occurred. Retrying...');
+                socket.close(); // Ensure the socket is closed before retrying
+            };
+        }
+
+        // Start the WebSocket connection
+        connectWebSocket();
+    </script>
+</body>
+
+</html>

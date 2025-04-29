@@ -68,7 +68,7 @@ goto fail
 :execute
 @rem Setup the command line
 
-set CLASSPATH=%APP_HOME%\lib\klotski-server.jar;%APP_HOME%\lib\gson-2.8.9.jar
+set CLASSPATH=%APP_HOME%\lib\klotski-server.jar;%APP_HOME%\lib\gson-2.8.9.jar;%APP_HOME%\lib\Java-WebSocket-1.5.3.jar;%APP_HOME%\lib\slf4j-simple-2.0.9.jar;%APP_HOME%\lib\slf4j-api-2.0.9.jar
 
 
 @rem Execute klotski-server
