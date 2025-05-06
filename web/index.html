@@ -98,6 +98,7 @@
                     const state = message
                         .replace('Board state updated:', '') // Remove the "Board state updated:" prefix
                         .replace(/^\s*\w+:\s*/, '') // Remove any username in the format "abcdexyz:"
+                        .replace(/^[^\n]*:\s*$/gm, '') // Remove any row ended with ":"
                         .trim(); // Trim any extra whitespace
                     drawBoard(state);
                     updateStatus(`Updating board...`);
@@ -105,7 +106,12 @@
 
                 // Check if the message is a board update for the specific user
                 if (message.startsWith('Board state updated:') && message.includes(`${username}:`)) {
-                    const state = message.replace('Board state updated:', '').replace(`${username}:`, '').trim();
+                    const state = message
+                        .replace('Board state updated:', '')
+                        .replace(new RegExp(`^${username}:\\s*\\n`, 'm'), '')
+                        .replace(/^[^\n]*:\s*$/gm, '') // Remove any row ended with ":"
+                        .trim();
+                    console.log(`State for ${username}:`, state); 
                     drawBoard(state);
                     updateStatus(`Updating board for ${username}...`);
                 }
