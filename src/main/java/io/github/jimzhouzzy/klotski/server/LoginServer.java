@@ -163,7 +163,6 @@ public class LoginServer {
         }
     }
 
-    // Add the basicValidation method
     private static boolean basicValidation(String username, String password) {
         // Check if the username is valid (not empty)
         if (username == null || username.isEmpty()) {
