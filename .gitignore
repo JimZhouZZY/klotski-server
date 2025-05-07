@@ -1,3 +1,6 @@
+# Server-generated files
+gameSaves/*
+
 # Java build files
 *.class
 *.jar
