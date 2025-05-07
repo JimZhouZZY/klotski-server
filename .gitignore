@@ -1,0 +1,32 @@
+# Java build files
+*.class
+*.jar
+*.war
+*.ear
+
+# Gradle files
+.gradle/
+build/
+out/
+
+# IntelliJ IDEA files
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# VS Code files
+.vscode/
+
+# Logs
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Token or sensitive files
+userToken.txt
+
+# Other
+web/

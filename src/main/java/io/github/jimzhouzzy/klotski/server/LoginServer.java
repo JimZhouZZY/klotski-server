@@ -11,15 +11,27 @@ import java.io.FileWriter;
 import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.java_websocket.WebSocket;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 public class LoginServer {
     private static final String USER_DATABASE_FILE = "userDatabase.json";
-    private static final Map<String, String> userDatabase = new ConcurrentHashMap<>();
+    public static final Map<String, String> userDatabase = new ConcurrentHashMap<>();
     private static final Gson gson = new Gson();
     private static GameWebSocketServer gameWebSocketServer;
+    private static final Map<String, TokenInfo> tokenDatabase = new ConcurrentHashMap<>();
+
+    private static class TokenInfo {
+        String username;
+        long expiryTime;
+
+        TokenInfo(String username, long expiryTime) {
+            this.username = username;
+            this.expiryTime = expiryTime;
+        }
+    }
 
     public static void main(String[] args) throws IOException {
         // Load user database from JSON file
@@ -90,26 +102,47 @@ public class LoginServer {
                 // Parse request body
                 String requestBody = new String(exchange.getRequestBody().readAllBytes());
                 String[] parts = requestBody.split("&");
-                String username = null, password = null;
+                String username = null, password = null, token = null;
                 for (String part : parts) {
                     String[] keyValue = part.split("=");
                     if (keyValue[0].equals("username")) {
                         username = keyValue[1];
                     } else if (keyValue[0].equals("password")) {
                         password = keyValue[1];
+                    } else if (keyValue[0].equals("token")) {
+                        token = keyValue[1];
                     }
                 }
-
-                // Perform basic validation
+    
                 String response;
-                if (!basicValidation(username, password)) {
-                    response = "failure: invalid input";
+                if (token != null) {
+                    // Token-based login
+                    String validatedUsername = validateToken(token);
+                    if (validatedUsername != null) {
+                        response = "success:" + token;
+                        System.out.println("Token login successful for user: " + validatedUsername);
+                    } else {
+                        response = "failure: invalid or expired token";
+                    }
                 } else {
-                    // Validate credentials
-                    boolean success = userDatabase.containsKey(username) && userDatabase.get(username).equals(password);
-                    response = success ? "success" : "failure";
+                    // Username/password login
+                    if (!basicValidation(username, password)) {
+                        response = "failure: invalid input";
+                    } else {
+                        boolean success = userDatabase.containsKey(username) && userDatabase.get(username).equals(password);
+                        if (success) {
+                            // Generate token
+                            String newToken = generateToken();
+                            long expiryTime = System.currentTimeMillis() + 30L * 24 * 60 * 60 * 1000; // 1 month
+                            tokenDatabase.put(newToken, new TokenInfo(username, expiryTime));
+                            response = "success:" + newToken;
+                            System.out.println("User " + username + " logged in with token: " + newToken);
+                        } else {
+                            response = "failure";
+                        }
+                    }
                 }
-
+    
                 // Send response
                 exchange.sendResponseHeaders(200, response.length());
                 OutputStream os = exchange.getResponseBody();
@@ -186,5 +219,17 @@ public class LoginServer {
         }
 
         return true;
+    }
+
+    private static String generateToken() {
+        return java.util.UUID.randomUUID().toString();
+    }
+
+    private static String validateToken(String token) {
+        TokenInfo tokenInfo = tokenDatabase.get(token);
+        if (tokenInfo != null && tokenInfo.expiryTime > System.currentTimeMillis()) {
+            return tokenInfo.username; // 返回用户名
+        }
+        return null; // Token 无效或已过期
     }
 }

@@ -100,6 +100,7 @@
                         .replace(/^\s*\w+:\s*/, '') // Remove any username in the format "abcdexyz:"
                         .replace(/^[^\n]*:\s*$/gm, '') // Remove any row ended with ":"
                         .trim(); // Trim any extra whitespace
+                    console.log('State:', state);
                     drawBoard(state);
                     updateStatus(`Updating board...`);
                 }
