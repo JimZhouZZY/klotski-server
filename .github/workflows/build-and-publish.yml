@@ -37,7 +37,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
-          name: Klotski ${{ github.ref_name }}
+          name: Klotski Server ${{ github.ref_name }}
           files: release/klotski-server.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
