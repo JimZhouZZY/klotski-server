@@ -1,0 +1,43 @@
+name: Build and Publish
+
+on:
+  push:
+    tags:
+      - "v*"
+    branches:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Run Gradle build
+        run: ./gradlew build
+
+      - name: Rename artifact
+        run: |
+          mkdir release
+          cp build/libs/klotski-server-all.jar release/klotski-server.jar
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Klotski ${{ github.ref_name }}
+          files: release/klotski-server.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
